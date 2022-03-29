@@ -156,6 +156,7 @@ pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 #[inline(always)]
 pub(crate) fn add_in_length(enc: &mut u128, len: u64) {
     #[cfg(all(target_arch = "x86_64", target_feature = "sse2", not(miri)))]
@@ -172,6 +173,40 @@ pub(crate) fn add_in_length(enc: &mut u128, len: u64) {
         }
     }
     #[cfg(not(all(target_arch = "x86_64", target_feature = "sse2", not(miri))))]
+    {
+        let mut t: [u64; 2] = enc.convert();
+        t[0] = t[0].wrapping_add(len);
+        *enc = t.convert();
+    }
+}
+
+#[cfg(target_arch = "aarch64")]
+#[inline(always)]
+pub(crate) fn add_in_length(enc: &mut u128, len: u64) {
+    #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))]
+    {
+        #[cfg(target_arch = "aarch64")]
+        use core::arch::aarch64::*;
+
+        unsafe {
+            let enc = enc as *mut u128;
+            // move 64bit into lowest 64 bits and zero upper bits
+            let len = vdup_n_s64(0);
+            let len = vsetq_lane_s64(len as i64, len, 0);
+
+            // let len = _mm_cvtsi64_si128(len as i64);
+            // load into new vector
+            let data = vld1q_u64(enc.cast());
+            // let data = _mm_loadu_si128(enc.cast());
+            // packed add of A and B
+            let sum = vaddq_u64(data, len);
+            // let sum = _mm_add_epi64(data, len);
+            // store sum into memory
+            vst1q_u64(enc.cast(), sum);
+            // _mm_storeu_si128(enc.cast(), sum);
+        }
+    }
+    #[cfg(not(all(target_arch = "aarch64", target_feature = "neon", not(miri))))]
     {
         let mut t: [u64; 2] = enc.convert();
         t[0] = t[0].wrapping_add(len);
