@@ -191,7 +191,7 @@ pub(crate) fn add_in_length(enc: &mut u128, len: u64) {
         unsafe {
             let enc = enc as *mut u128;
             // move 64bit into lowest 64 bits and zero upper bits
-            let len = vsetq_lane_s64(len as i64, vdup_n_s64(0), 0);
+            let len = vsetq_lane_u64(len as i64, vdup_n_u64(0), 0);
 
             // let len = _mm_cvtsi64_si128(len as i64);
             // load into new vector
