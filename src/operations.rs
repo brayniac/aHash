@@ -191,17 +191,17 @@ pub(crate) fn add_in_length(enc: &mut u128, len: u64) {
         unsafe {
             let enc = enc as *mut u128;
             // move 64bit into lowest 64 bits and zero upper bits
-            let len = vsetq_lane_u64(len as i64, vdup_n_u64(0), 0);
+            let len = vsetq_lane_s64(len as i64, vdupq_n_s64(0), 0);
 
             // let len = _mm_cvtsi64_si128(len as i64);
             // load into new vector
-            let data = vld1q_u64(enc.cast());
+            let data = vld1q_s64(enc.cast());
             // let data = _mm_loadu_si128(enc.cast());
             // packed add of A and B
-            let sum = vaddq_u64(data, len);
+            let sum = vaddq_s64(data, len);
             // let sum = _mm_add_epi64(data, len);
             // store sum into memory
-            vst1q_u64(enc.cast(), sum);
+            vst1q_s64(enc.cast(), sum);
             // _mm_storeu_si128(enc.cast(), sum);
         }
     }
