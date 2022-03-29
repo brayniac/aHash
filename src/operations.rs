@@ -80,7 +80,17 @@ pub(crate) fn add_by_64s(a: [u64; 2], b: [u64; 2]) -> [u64; 2] {
     }
 }
 
-#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri))))]
+#[cfg(all(any(target_arch = "aarch64"), target_feature = "neon", not(miri), feature = "stdsimd"))]
+#[inline(always)]
+pub(crate) fn add_by_64s(a: [u64; 2], b: [u64; 2]) -> [u64; 2] {
+    use core::mem::transmute;
+    unsafe {
+        use core::arch::aarch64::*;
+        transmute(vaddq_s64(transmute(a), transmute(b)))
+    }
+}
+
+#[cfg(not(any(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri)), all(any(target_arch = "aarch64"), target_feature = "neon", not(miri), feature = "stdsimd"))))]
 #[inline(always)]
 pub(crate) fn add_by_64s(a: [u64; 2], b: [u64; 2]) -> [u64; 2] {
     [a[0].wrapping_add(b[0]), a[1].wrapping_add(b[1])]
